@@ -2,9 +2,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-$servername = getenv('DB_HOST')     ?: 'localhost';
-$username   = getenv('DB_USER')     ?: 'root';
-$password   = getenv('DB_PASSWORD') ?: '';
+$servername = getenv('DB_HOST')     ?: '127.0.0.1';
+$username   = getenv('DB_USER')     ?: 'agencia_user';
+$password   = getenv('DB_PASSWORD') ?: 'agencia_pass';
 $dbname     = getenv('DB_NAME')     ?: 'agencia';
 
 // Crear conexión
