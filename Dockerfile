@@ -18,22 +18,31 @@ RUN a2enmod rewrite
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf \
     && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-available/000-default.conf
 
-# Permitir .htaccess y suprimir warning ServerName
+# Permitir .htaccess
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf \
     && echo 'ServerName localhost' >> /etc/apache2/apache2.conf
 
-# Copiar código fuente (sistema_agencia como webroot)
+# Copiar código fuente
 COPY sistema_agencia/ /var/www/html/
 
-# Copiar scripts de infraestructura
+# Copiar scripts
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY init-db.sh /init-db.sh
+COPY mysql-init.sql /mysql-init.sql
 RUN chmod +x /init-db.sh
 
-# Crear directorio de logs supervisor
+# Inicializar el datadir de MariaDB en BUILD TIME
+RUN mysql_install_db --user=mysql --datadir=/var/lib/mysql
+
+# Ejecutar MariaDB con --init-file para crear DB y usuario SIN password root
+RUN mysqld_safe --init-file=/mysql-init.sql --user=mysql & \
+    sleep 8 && \
+    mysqladmin shutdown -u root 2>/dev/null || true
+
+# Crear directorio de logs
 RUN mkdir -p /var/log/supervisor
 
-# Permisos
+# Permisos apache
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
