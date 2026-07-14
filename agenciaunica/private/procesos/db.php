@@ -2,10 +2,10 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "agencia";
+$servername = getenv('DB_HOST')     ?: 'localhost';
+$username   = getenv('DB_USER')     ?: 'root';
+$password   = getenv('DB_PASSWORD') ?: '';
+$dbname     = getenv('DB_NAME')     ?: 'agencia';
 
 // Crear conexión
 $conn = new mysqli($servername, $username, $password, $dbname);
