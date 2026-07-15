@@ -1,468 +1,82 @@
 <?php
-$nombre_usuario = isset($_SESSION['usuario_registro']) ? $_SESSION['usuario_registro'] : 'usuario_registro';
-$rol = isset($_SESSION['rol_id']) ? $_SESSION['rol_id'] : 1; // 1 por defecto, si no está definido
-
-// Mapear el rol a una descripción
-$roles = [
-  1 => 'Rango Bajo',
-  2 => 'Rango Medio',
-  3 => 'Rango Alto',
-  4 => 'Rango dueño'
-];
+$nombre_usuario = $_SESSION['usuario'] ?? $_SESSION['usuario_registro'] ?? 'usuario';
+$rol = $_SESSION['rol_id'] ?? 4;
+$page_actual = $_GET['page'] ?? 'HOM';
+$id_usuario = $_SESSION['id'] ?? 0;
+$creditos = 0; $rango = 'Sin rango'; $mis_sanciones = 0;
+if ($id_usuario) {
+    $stmt = $conn->prepare('SELECT creditos FROM dinero_digital WHERE id_usuario=? LIMIT 1');
+    if ($stmt) { $stmt->bind_param('i',$id_usuario); $stmt->execute(); $r=$stmt->get_result(); if($r&&$row=$r->fetch_assoc()) $creditos=$row['creditos']; $stmt->close(); }
+    $stmt2 = $conn->prepare('SELECT r.rango FROM registro_usuario u LEFT JOIN rangos r ON u.Rango_asignado=r.id_rango WHERE u.id=? LIMIT 1');
+    if ($stmt2) { $stmt2->bind_param('i',$id_usuario); $stmt2->execute(); $r2=$stmt2->get_result(); if($r2&&$row2=$r2->fetch_assoc()) $rango=$row2['rango']; $stmt2->close(); }
+    $stmt3 = $conn->prepare('SELECT COUNT(*) AS c FROM sanciones WHERE id_sancionado=? AND activa=1');
+    if ($stmt3) { $stmt3->bind_param('i',$id_usuario); $stmt3->execute(); $r3=$stmt3->get_result(); if($r3&&$row3=$r3->fetch_assoc()) $mis_sanciones=$row3['c']; $stmt3->close(); }
+}
 ?>
-
-<!-- MENU PRINCIPAL -->
-<nav class="navbar navbar-dark fixed-top" style="background-color: #2d1b32;" aria-label="Light offcanvas navbar">
+<nav class="navbar navbar-dark fixed-top" style="background-color:#2d1b32;">
   <div class="container-fluid">
-
-    <div class="d-flex justify-content-between w-100">
-
-      <!-- Título del Menú con Offcanvas -->
-      <a class="navbar-brand" href="#" data-bs-toggle="offcanvas" data-bs-target="#userInfoCanvas" aria-controls="userInfoCanvas">
-        PERFIL
+    <div class="d-flex justify-content-between w-100 align-items-center">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#" data-bs-toggle="offcanvas" data-bs-target="#userInfoCanvas" style="text-decoration:none;">
+        <img src="https://www.habbo.es/habbo-imaging/avatarimage?user=<?= urlencode($nombre_usuario) ?>&direction=3&head_direction=3&gesture=sml&size=s"
+             alt="Avatar" width="36" height="50" style="border-radius:50%;border:2px solid #d4af37;" loading="lazy">
+        <span style="color:#d4af37;font-size:0.85rem;"><?= htmlspecialchars($nombre_usuario) ?><br><small style="color:#a57db5;"><?= htmlspecialchars($rango) ?></small></span>
       </a>
-
-      <style>
-        .avatar-container {
-          width: 100px;
-          height: 100px;
-          overflow: hidden;
-          border-radius: 50%;
-          border: 3px solid white;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .avatar-image {
-          width: 100%;
-          height: auto;
-        }
-
-        .virtual-money-container {
-          background-color: #4e2a57;
-          padding: 10px 15px;
-          border-radius: 12px;
-          box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-          display: inline-block;
-        }
-
-        .money-icon {
-          font-size: 30px;
-          margin-bottom: 5px;
-        }
-
-        @media (max-width: 576px) {
-          .avatar-container {
-            width: 80px;
-            height: 80px;
-          }
-
-          .virtual-money-container {
-            font-size: 0.9rem;
-          }
-        }
-      </style>
-
-      <!-- Offcanvas para Información del Usuario -->
-      <div class="offcanvas offcanvas-start" tabindex="-1" id="userInfoCanvas" aria-labelledby="userInfoCanvasLabel" style="background-color: #2d1b32; color: white;">
-        <div class="offcanvas-header">
-          <h5 class="offcanvas-title" id="userInfoCanvasLabel">Perfil del Usuario</h5>
-          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-        <div class="offcanvas-body text-center">
-          <!-- Avatar del Usuario -->
-          <div class="avatar-kekos mx-auto mb-3">
-            <img src="https://www.habbo.es/habbo-imaging/avatarimage?user=<?php echo htmlspecialchars($nombre_usuario); ?>&direction=3&head_direction=3&gesture=sml&action=none&size=b" alt="Avatar" class="avatar-image">
-          </div>
-
-          <?php
-          $rol_descripcion = isset($roles[$rol]) ? $roles[$rol] : 'Rango Desconocido';
-          // Obtener el id_usuario a partir del nombre de usuario
-          $sql_usuario = "SELECT id FROM registro_usuario WHERE usuario_registro = ?";
-          $stmt = $conn->prepare($sql_usuario);
-          $stmt->bind_param("s", $nombre_usuario);
-          $stmt->execute();
-          $result = $stmt->get_result();
-
-          // Consultar los créditos del usuario
-          if ($result->num_rows > 0) {
-            $usuario = $result->fetch_assoc();
-            $id_usuario = $usuario['id'];
-
-            $sql_creditos = "SELECT creditos FROM dinero_digital WHERE id_usuario = ?";
-            $stmt_creditos = $conn->prepare($sql_creditos);
-            $stmt_creditos->bind_param("i", $id_usuario);
-            $stmt_creditos->execute();
-            $result_creditos = $stmt_creditos->get_result();
-
-            if ($result_creditos->num_rows > 0) {
-              $dinero = $result_creditos->fetch_assoc();
-              $creditos = $dinero['creditos'];
-            } else {
-              $creditos = 0; // Si no tiene créditos registrados
-            }
-          } else {
-            $creditos = 0; // Si no se encontró el usuario
-          }
-
-          // Consultar rangos
-          $sql_usuario = "
-    SELECT ru.id, ru.usuario_registro, r.rango 
-    FROM registro_usuario ru 
-    JOIN rangos r ON ru.Rango_asignado = r.id_rango 
-    WHERE ru.usuario_registro = ?";
-          $stmt = $conn->prepare($sql_usuario);
-          $stmt->bind_param("s", $nombre_usuario);
-          $stmt->execute();
-          $result = $stmt->get_result();
-
-          // Verificar si se encontró el usuario
-          if ($row = $result->fetch_assoc()) {
-            $rango = $row['rango'];
-          } else {
-            $rango = 'Rango Desconocido';
-          }
-
-          // 1. Obtener el codigo_usuario a partir del id_persona
-          $sql_codigo = "SELECT codigo_usuario FROM sistema_asctim WHERE id_persona = ?";
-          $stmt_codigo = $conn->prepare($sql_codigo);
-          $stmt_codigo->bind_param("i", $id_usuario);
-          $stmt_codigo->execute();
-          $result_codigo = $stmt_codigo->get_result();
-          $codigo_usuario = $result_codigo->fetch_assoc()['codigo_usuario'] ?? '';
-
-          // 2. Obtener la misión actual desde la tabla ascensos
-          $sql_mision = "SELECT mision_actual FROM ascensos WHERE codigo_id = ?";
-          $stmt_mision = $conn->prepare($sql_mision);
-          $stmt_mision->bind_param("s", $codigo_usuario);
-          $stmt_mision->execute();
-          $result_mision = $stmt_mision->get_result();
-          $mision_actual = $result_mision->fetch_assoc()['mision_actual'] ?? 'Sin misión registrada';
-
-          // 3. Obtener el tiempo y estado desde tiempos_de_paga
-          $sql_tiempo = "SELECT tiempo_acumulado, estado_tiempo FROM tiempos_de_paga WHERE codigo_id = ?";
-          $stmt_tiempo = $conn->prepare($sql_tiempo);
-          $stmt_tiempo->bind_param("s", $codigo_usuario);
-          $stmt_tiempo->execute();
-          $result_tiempo = $stmt_tiempo->get_result();
-          $row_tiempo = $result_tiempo->fetch_assoc();
-
-          $tiempo_acumulado = $row_tiempo['tiempo_acumulado'] ?? '0 horas';
-          $estado_tiempo = $row_tiempo['estado_tiempo'] ?? 'Desconocido';
-
-          ?>
-
-          <hr>
-          <p class="badge">Datos personales</p>
-          <!-- Información del Usuario -->
-          <p class="text-white">id usuario: <?php echo htmlspecialchars($id_usuario); ?></p>
-          <p class="text-white">Nombre usuario: <?php echo htmlspecialchars($nombre_usuario); ?></p>
-          <p class="text-white">Rango: <?php echo htmlspecialchars($rango); ?></p>
-
-          <HR>
-          </HR>
-          <p class="badge">Datos de trabajo</p>
-          <p class="text-white">Código: <?php echo htmlspecialchars($codigo_usuario); ?></p>
-          <p class="text-white">Misión: <?php echo htmlspecialchars($mision_actual); ?></p>
-          <p class="text-white">Tiempo total: <?php echo htmlspecialchars($tiempo_acumulado); ?></p>
-          <p class="text-white">Estatus de tiempo: <?php echo htmlspecialchars($estado_tiempo); ?></p>
-
-          <hr>
-          <!-- Dinero Virtual -->
-          <div class="virtual-money-container mt-4">
-            <h5>Créditos:</h5>
-            <h3 id="virtualBalance">$ <?php echo $creditos; ?></h3>
-          </div>
-
-        </div>
-      </div>
-
-      <style>
-        .avatar-kekos {
-          width: 100px;
-          height: 100px;
-          overflow: hidden;
-          border-radius: 50%;
-          border: 3px solid white;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .avatar-image {
-          width: 100%;
-          height: auto;
-        }
-
-        @media (max-width: 576px) {
-          .avatar-kekos {
-            width: 100px;
-            height: 100px;
-          }
-        }
-
-        
-      </style>
-
-      <div class="avatar-container">
-        <img src="/agenciaunica/private/assets/images/favicon.png" alt="Avatar" class="avatar-image">
-      </div>
-
-
-      <!-- Botón de la hamburguesa alineado a la derecha -->
-      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbarDark"
-        aria-controls="offcanvasNavbarDark" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+      <img src="/agenciaunica/private/assets/images/favicon.png" alt="Logo" width="40" height="40" style="border-radius:50%;border:2px solid #d4af37;box-shadow:0 0 10px #d4af37;">
+      <?php if ($mis_sanciones>0): ?><span class="badge bg-danger me-2"><i class="fa fa-ban"></i> <?= $mis_sanciones ?></span><?php endif; ?>
+      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu"><span class="navbar-toggler-icon"></span></button>
     </div>
 
-    <!-- Offcanvas Menu -->
-    <div class="offcanvas offcanvas-end text-white" style="background-color: #2d1b32;" tabindex="-1" id="offcanvasNavbarDark"
-      aria-labelledby="offcanvasNavbarDarkLabel">
-
-      <div class="offcanvas-header">
-          <h5 class="offcanvas-title" id="userInfoCanvasLabel">MENU DE ADMINISTRADOR</h5>
-          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <!-- Offcanvas perfil -->
+    <div class="offcanvas offcanvas-start text-white" tabindex="-1" id="userInfoCanvas" style="background:#2d1b32;">
+      <div class="offcanvas-header"><h5>Mi Perfil — Dueño</h5><button class="btn-close text-reset" data-bs-dismiss="offcanvas"></button></div>
+      <div class="offcanvas-body text-center">
+        <img src="https://www.habbo.es/habbo-imaging/avatarimage?user=<?= urlencode($nombre_usuario) ?>&direction=3&head_direction=3&gesture=sml&size=b" width="100" height="130" style="border-radius:50%;border:3px solid #d4af37;" loading="lazy">
+        <h5 class="mt-2"><?= htmlspecialchars($nombre_usuario) ?></h5>
+        <span class="badge" style="background:#a57db5;"><?= htmlspecialchars($rango) ?></span>
+        <span class="badge ms-1 bg-danger">Dueño</span>
+        <hr style="border-color:#a57db5;">
+        <div style="background:#4e2a57;padding:10px;border-radius:12px;">
+          <h6 class="text-white mb-1">Créditos</h6>
+          <h3 class="text-warning mb-0">$ <?= number_format($creditos) ?></h3>
         </div>
+        <hr style="border-color:#a57db5;">
+        <a href="/index.php?page=PERFIL" class="btn btn-outline-light btn-sm w-100 mb-2"><i class="fa fa-user"></i> Ver perfil</a>
+        <a href="/logout.php" class="btn btn-danger btn-sm w-100"><i class="fa fa-sign-out"></i> Cerrar sesión</a>
+      </div>
+    </div>
+
+    <!-- Offcanvas menú dueños -->
+    <div class="offcanvas offcanvas-end text-white" style="background:#2d1b32;" tabindex="-1" id="offcanvasMenu">
+      <div class="offcanvas-header"><h5>MENÚ — DUEÑOS</h5><button class="btn-close text-reset" data-bs-dismiss="offcanvas"></button></div>
       <div class="offcanvas-body">
-        <ul class="navbar-nav flex-grow-1 pe-3">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='HOM'?'text-warning':'text-white' ?>" href="/index.php?page=HOM"><i class="fa fa-home me-2"></i>Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='PERFIL'?'text-warning':'text-white' ?>" href="/index.php?page=PERFIL"><i class="fa fa-user me-2"></i>Mi Perfil</a></li>
 
-          <!-- Menú de navegación -->
-          <li class="nav-item">
-            <a class="nav-link text-white" href="index.php?page=HOM"><i class="fas fa-home me-2"></i>Home</a>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fas fa-info-circle me-2"></i>Información
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <li>
-                <a class="dropdown-item" href="index.php?page=RAG">
-                  <i class="fas fa-medal"></i> Rangos
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">
-                  <i class="fas fa-gem"></i> Membresías
-                </a>
-              </li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li>
-                <a class="dropdown-item" href="index.php?page=GSU">
-                  <i class="fas fa-users-cog"></i> Gestión de usuarios
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="index.php?page=GVE">
-                  <i class="fas fa-chart-line"></i> Gestión de ventas
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fas fa-edit me-2"></i> Editar plantilla principal
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#registerAdminModal"><i class="fas fa-user-plus me-2"></i> Registrar miembros</a></li>
-              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modificarModal"><i class="fas fa-user-edit me-2"></i>Modificar miembros</a></li>
-              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#deleteAdminModal"><i class="fas fa-user-minus me-2"></i>Eliminar miembros</a></li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#registroModal"><i class="fas fa-address-card me-2"></i>Registrar membresía</a></li>
-              <li><a href="#" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editMembershipModal"><i class="fas fa-pencil-alt me-2"></i>Modificar membresía</a></li>
-              <li><a href="#" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deleteMembershipModal"><i class="fas fa-trash-alt me-2"></i>Eliminar membresía</a></li>
-            </ul>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-newspaper-o me-2"></i>Noticias
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <li>
-                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#publicarModal">
-                  <i class="fas fa-newspaper"></i> Publicar noticia
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modificarModalpublicaciones">
-                  <i class="fas fa-edit"></i> Modificar noticia
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">
-                  <i class="fas fa-trash-alt"></i> Eliminar publicación
-                </a>
-              </li>
-            </ul>
+          <li class="nav-item"><hr style="border-color:#a57db5;margin:8px 0;"></li>
+          <li><small class="text-muted px-2" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;">Gestión</small></li>
 
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa fa-money me-2"></i> Pagas
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <li>
-                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#registrarPagaModal">
-                  <i class="fas fa-hand-holding-usd"></i> Dar pagas
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="index.php?page=GSP">
-                  <i class="fas fa-wallet"></i> Gestión de pagas
-                </a>
-              </li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#registrarVentaModal">
-                  <i class="fas fa-cash-register"></i> Vender productos
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="index.php?page=GVP">
-                  <i class="fas fa-chart-bar"></i> Gestión de ventas
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fas fa-tachometer-alt me-2"></i> Ascensos y tiempo
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <li>
-                <a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalAscenderPersona" href="#">
-                  <i class="fas fa-level-up-alt"></i> Toma de ascenso
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">
-                  <i class="fas fa-user-shield"></i> Gestión de accesos
-                </a>
-              </li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#tomaTiempoModal">
-                  <i class="fas fa-stopwatch"></i> Toma de tiempo
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">
-                  <i class="fas fa-clock"></i> Gestión de tiempos
-                </a>
-              </li>
-            </ul>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='GSU'?'text-warning':'text-white' ?>" href="/index.php?page=GSU"><i class="fa fa-users me-2"></i>Gestión Usuarios</a></li>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='RAG'?'text-warning':'text-white' ?>" href="/index.php?page=RAG"><i class="fa fa-shield me-2"></i>Rangos</a></li>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='GSP'?'text-warning':'text-white' ?>" href="/index.php?page=GSP"><i class="fa fa-money me-2"></i>Gestión Pagas</a></li>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='GVE'?'text-warning':'text-white' ?>" href="/index.php?page=GVE"><i class="fa fa-shopping-cart me-2"></i>Ventas</a></li>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='GVP'?'text-warning':'text-white' ?>" href="/index.php?page=GVP"><i class="fa fa-tag me-2"></i>Ventas Placas</a></li>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='DJ'?'text-warning':'text-white' ?>" href="/index.php?page=DJ"><i class="fa fa-music me-2"></i>DJs</a></li>
 
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">
-              <button class="btn btn-danger"> <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</button>
-            </a>
+          <li class="nav-item"><hr style="border-color:#a57db5;margin:8px 0;"></li>
+          <li><small class="text-muted px-2" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;">Administración</small></li>
+
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='NOT'?'text-warning':'text-white' ?>" href="/index.php?page=NOT"><i class="fa fa-newspaper-o me-2"></i>Noticias / Anuncios</a></li>
+          <li class="nav-item"><a class="nav-link <?= $page_actual==='SAN'?'text-warning':'text-white' ?>" href="/index.php?page=SAN"><i class="fa fa-ban me-2"></i>Sanciones</a></li>
+
+          <li class="nav-item mt-3">
+            <a href="/logout.php" class="btn btn-danger w-100"><i class="fa fa-sign-out me-2"></i>Cerrar sesión</a>
           </li>
         </ul>
       </div>
     </div>
   </div>
 </nav>
-
-
-<!-- Modal para Confirmar Cierre de Sesión -->
-<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="logoutModalLabel">Cerrar sesión</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        ¿Estás seguro de que deseas cerrar sesión?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <a href="../private/modal/cerrar_sesion.php" class="btn btn-danger">Cerrar sesión</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
-  .avatar-container {
-    width: 50px;
-    height: 50px;
-    overflow: hidden;
-    border-radius: 50%;
-    border: 2px solid #d4af37;
-    /* Dorado antiguo */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 0 12px #d4af37;
-  }
-
-  .avatar-image {
-    width: 100%;
-    height: auto;
-  }
-
-  .navbar-toggler-icon {
-    background-image: url('/agenciaunica/private/images//menu/ghost.png');
-    /* Icono gótico */
-    background-size: cover;
-  }
-
-  .navbar-nav .nav-link {
-    color: #d4af37;
-    /* Dorado suave */
-    transition: color 0.3s ease;
-    font-family: 'Cinzel', serif;
-    /* Fuente con aire gótico */
-  }
-
-  .navbar-nav .nav-link:hover {
-    color: white;
-    text-shadow: 0 0 10px #d4af37;
-  }
-
-  .text-gold {
-    color: #d4af37;
-  }
-
-  @media (max-width: 576px) {
-    .avatar-container {
-      width: 40px;
-      height: 40px;
-    }
-  }
-</style>
-
-<!--MODALES-->
-
-<!--PLANTILLAS MIEMBROS-->
-<?php require_once('../private/modal/modal_registrar_persona.php'); ?>
-<?php require_once('../private/modal/modificar_persona.php'); ?>
-<?php require_once('../private/modal/modal_eliminar_persona.php'); ?>
-
-<!--NOTICIAS EN LA PLANTILLA DE BIENVENIDA-->
-<?php require_once('../private/modal/modal_publicar_noticia.php'); ?>
-<?php require_once('../private/modal/modal_modificar_publicaciones.php'); ?>
-
-<!--PLANTILLAS MEMBRESIAS-->
-<?php require_once('../private/modal/registrar_membresias.php'); ?>
-<?php require_once('../private/modal/modificar_membresias.php'); ?>
-<?php require_once('../private/modal/modal_eliminar_membresias.php'); ?>
-
-<!--PLANTILLAS ASCENSO Y TIME-->
 <?php require_once('../private/modal/sistema_de_ascenso.php'); ?>
-<?php require_once('../private/modal/tiempo_paga.php'); ?>
-
-<!--PLANTILLAS GESTION VENTAS-->
-<?php require_once('../private/modal/modal_vender_producto.php'); ?>
-<?php require_once('../private/modal/modal_pagar.php'); ?>
+<?php require_once('../private/modal/modaltomatime.php'); ?>
+<style>body{padding-top:70px;} .navbar-toggler-icon{background-image:url('/agenciaunica/private/images/menu/ghost.png');background-size:cover;}</style>
