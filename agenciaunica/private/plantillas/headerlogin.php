@@ -10,19 +10,18 @@
   <title>AGENCIA HABBO: TWITCH</title>
 
   <!--favicon-->
-  <link rel="icon" href="/agenciaunica/private/assets/images/favicon.png" type="image/x-icon">
+  <link rel="icon" href="/private/assets/images/favicon.png" type="image/x-icon">
 
   <!-- Bootstrap core CSS-->
-  <link href="/agenciaunica/private/assets/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="/agenciaunica/private/assets/css/bootstrap.css">
+  <link href="/private/assets/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/private/assets/css/bootstrap.css">
   
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-
   <!-- Icons CSS-->
-  <link href="/agenciaunica/private/assets/css/icons.css" rel="stylesheet" type="text/css" />
+  <link href="/private/assets/css/icons.css" rel="stylesheet" type="text/css" />
 
   <!-- Custom Style-->
-  <link href="/agenciaunica/private/assets/css/rango.css" rel="stylesheet" />
-  <link rel="stylesheet" href="/agenciaunica/private/assets/css/neon_login_registre.css">
+  <link href="/private/assets/css/rango.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/private/assets/css/neon_login_registre.css">
 </head>
