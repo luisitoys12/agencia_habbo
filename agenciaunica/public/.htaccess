@@ -1,19 +1,19 @@
 Options -Indexes
 DirectoryIndex index.php index.html
 
-# Redirigir la raiz del panel al index.php del panel
-ErrorDocument 404 /index.php
-
 RewriteEngine On
 
-# Archivos y carpetas reales: servir directo
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# NO redirigir archivos y carpetas que existen fisicamente
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# NO redirigir rutas de autenticacion (evita el loop infinito)
+RewriteRule ^login\.php$ - [L]
+RewriteRule ^register\.php$ - [L]
+RewriteRule ^logout\.php$ - [L]
 
 # Todo lo demas -> index.php del panel
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L]
-
-# Rutas cortas del panel admin
-RewriteRule ^admin/?$ ../private/panel/index.php [L]
-RewriteRule ^admin/noticias/?$ ../private/panel/noticias.php [L]
-RewriteRule ^admin/notificaciones/?$ ../private/panel/notificaciones.php [L]
