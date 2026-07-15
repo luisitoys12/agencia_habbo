@@ -1,7 +1,6 @@
 <?php
 /**
  * login.php — Pagina de login publica.
- * Ubicada en /public/ para que Apache la sirva directamente.
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -20,26 +19,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = trim($_POST['password'] ?? '');
 
     if ($usuario !== '' && $password !== '') {
+        // Busca por nombre_usuario (columna nueva) O usuario_registro (columna legacy)
+        // para ser compatible con cuentas creadas antes y despues del fix
         $stmt = $conn->prepare(
-            'SELECT id, usuario_registro, password_registro, rol_id, Rango_asignado
-             FROM registro_usuario WHERE usuario_registro = ? LIMIT 1'
+            'SELECT id, nombre_usuario, usuario_registro, password_registro, rol_id, Rango_asignado
+             FROM registro_usuario
+             WHERE nombre_usuario = ? OR usuario_registro = ?
+             LIMIT 1'
         );
-        $stmt->bind_param('s', $usuario);
+        $stmt->bind_param('ss', $usuario, $usuario);
         $stmt->execute();
         $result = $stmt->get_result();
 
         if ($row = $result->fetch_assoc()) {
             if (password_verify($password, $row['password_registro'])) {
                 session_regenerate_id(true);
+                // Usa nombre_usuario si existe, sino usuario_registro
+                $nick = $row['nombre_usuario'] ?: $row['usuario_registro'];
                 $_SESSION['id']             = $row['id'];
-                $_SESSION['usuario']        = $row['usuario_registro'];
+                $_SESSION['usuario']        = $nick;
                 $_SESSION['rol_id']         = $row['rol_id'];
                 $_SESSION['Rango_asignado'] = $row['Rango_asignado'];
                 header('Location: /index.php');
                 exit();
             }
         }
-        $error = 'Usuario o contraseña incorrectos.';
+        $error = 'Usuario o contrasena incorrectos.';
         $stmt->close();
     } else {
         $error = 'Completa todos los campos.';
@@ -58,10 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <img src="/private/assets/images/logo-icon.png" alt="Logo" width="150" height="150">
         </div>
 
-        <div class="card-title text-uppercase text-center py-3">Iniciar Sesión</div>
+        <div class="card-title text-uppercase text-center py-3">Iniciar Sesion</div>
 
         <?php if ($error): ?>
-          <div class="alert alert-danger text-center py-2"><?= htmlspecialchars($error) ?></div>
+          <div class="alert alert-danger text-center py-2">
+            <?= htmlspecialchars($error) ?>
+          </div>
         <?php endif; ?>
 
         <form method="POST" action="/login.php">
@@ -72,25 +79,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    placeholder="Tu nick de Habbo"
                    value="<?= htmlspecialchars($_POST['usuario'] ?? '') ?>"
                    required autofocus>
-          </div>
-          <br>
+          </div><br>
           <div class="form-group">
-            <label for="password">Contraseña</label>
+            <label for="password">Contrasena</label>
             <input type="password" id="password" name="password"
                    class="form-control input-shadow"
-                   placeholder="Contraseña"
+                   placeholder="Contrasena"
                    required>
-          </div>
-          <br>
+          </div><br>
           <div class="text-center">
-            <button type="submit" class="btn btn-light btn-block waves-effect waves-light">
-              Entrar
-            </button>
+            <button type="submit"
+                    class="btn btn-light btn-block waves-effect waves-light"
+                    >Entrar</button>
           </div>
           <div class="card-footer text-center py-3">
             <p class="text-warning mb-0">
-              ¿No tienes cuenta?
-              <a href="/register.php">Regístrate</a>
+              &iquest;No tienes cuenta?
+              <a href="/register.php">Registrate</a>
             </p>
           </div>
         </form>
