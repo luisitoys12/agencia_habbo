@@ -51,13 +51,17 @@ COPY mysql-init.sql /mysql-init.sql
 COPY apache-wait-start.sh /usr/local/bin/apache-wait-start.sh
 RUN chmod +x /init-db.sh /usr/local/bin/apache-wait-start.sh
 
-# Inicializar datadir de MariaDB en BUILD TIME
-RUN mysql_install_db --user=mysql --datadir=/var/lib/mysql
+# LIMPIEZA TOTAL del datadir para evitar cache corrupta de Kaniko
+# Siempre inicializar desde cero en cada build
+RUN rm -rf /var/lib/mysql && mkdir -p /var/lib/mysql && chown -R mysql:mysql /var/lib/mysql
+RUN mariadb-install-db --user=mysql --datadir=/var/lib/mysql
 
-# Ejecutar MariaDB con init-file para crear DB y usuario
-RUN mysqld_safe --init-file=/mysql-init.sql --user=mysql & \
-    sleep 8 && \
-    mysqladmin shutdown -u root 2>/dev/null || true
+# Ejecutar MariaDB con init-file para crear DB, usuario y tablas
+RUN mysqld_safe --user=mysql & \
+    sleep 10 && \
+    mysql -u root < /mysql-init.sql && \
+    mysqladmin shutdown -u root 2>/dev/null || true && \
+    sleep 3
 
 # Directorios de logs
 RUN mkdir -p /var/log/supervisor

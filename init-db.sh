@@ -1,9 +1,18 @@
 #!/bin/bash
 set -e
 
-echo '>>> [1/4] Arrancando MariaDB temporal para verificar/restaurar grants...'
+echo '=== [RUNTIME INIT] Verificando MariaDB datadir...'
+
+# Si el datadir esta vacio o no tiene los archivos de sistema, reinicializar
+if [ ! -f /var/lib/mysql/ibdata1 ]; then
+    echo '>>> Datadir vacio o incompleto. Reinicializando...'
+    rm -rf /var/lib/mysql/*
+    chown -R mysql:mysql /var/lib/mysql
+    mariadb-install-db --user=mysql --datadir=/var/lib/mysql
+fi
+
+echo '>>> [1/4] Arrancando MariaDB para verificar grants...'
 mysqld_safe --user=mysql --skip-networking=0 &
-MYSQL_PID=$!
 
 # Esperar a que MySQL este listo (hasta 60s)
 for i in $(seq 1 30); do
@@ -11,12 +20,17 @@ for i in $(seq 1 30); do
         echo ">>> MySQL listo en intento $i."
         break
     fi
-    echo "Esperando MySQL... intento $i"
+    echo "Esperando MySQL... intento $i/30"
     sleep 2
 done
 
+# Verificar que podemos conectarnos como root
+if ! mysqladmin ping -u root --silent 2>/dev/null; then
+    echo 'ERROR: MySQL no responde despues de 60s. Abortando.'
+    exit 1
+fi
+
 # Re-aplicar siempre el usuario y grants en cada arranque
-# Esto soluciona el problema de que los grants se pierden entre reinicios
 echo '>>> [2/4] Reaplicando usuario y permisos...'
 mysql -u root <<-EOSQL
     CREATE DATABASE IF NOT EXISTS sistema_agencia
@@ -32,28 +46,28 @@ mysql -u root <<-EOSQL
     ALTER USER 'agencia_user'@'127.0.0.1' IDENTIFIED BY 'agencia_pass2026';
     FLUSH PRIVILEGES;
 EOSQL
-echo '>>> Grants aplicados correctamente.'
+echo '>>> Grants aplicados.'
 
-# Importar schema si existe y la tabla principal aun no tiene datos
-if [ -f /var/www/html/base-datos/tablas/sistema_agencia.sql ]; then
-    TABLE_EXISTS=$(mysql -u root sistema_agencia -e "SHOW TABLES LIKE 'registro_usuario';" 2>/dev/null | wc -l)
-    if [ "$TABLE_EXISTS" -lt "1" ]; then
-        echo '>>> [3/4] Importando schema inicial...'
-        mysql -u root sistema_agencia < /var/www/html/base-datos/tablas/sistema_agencia.sql
-        echo '>>> Schema importado.'
-    else
-        echo '>>> [3/4] Schema ya existe, saltando importacion.'
-    fi
+# Importar schema si la tabla principal no existe
+TABLE_EXISTS=$(mysql -u root sistema_agencia -e "SHOW TABLES LIKE 'registro_usuario';" 2>/dev/null | wc -l)
+if [ "$TABLE_EXISTS" -lt "1" ]; then
+    echo '>>> [3/4] Importando schema + datos iniciales...'
+    mysql -u root sistema_agencia < /mysql-init.sql 2>/dev/null || \
+    mysql -u root < /mysql-init.sql
+    echo '>>> Schema importado.'
+else
+    echo '>>> [3/4] Schema ya existe, saltando.'
 fi
 
-# Verificar que el usuario puede conectarse antes de arrancar Apache
+# Verificar que agencia_user puede conectarse
 echo '>>> Verificando conexion de agencia_user...'
 for i in $(seq 1 10); do
-    if mysql -u agencia_user -pagencia_pass2026 -h 127.0.0.1 sistema_agencia -e 'SELECT 1;' >/dev/null 2>&1; then
-        echo ">>> Conexion de agencia_user verificada en intento $i. OK."
+    if mysql -u agencia_user -pagencia_pass2026 -h 127.0.0.1 sistema_agencia \
+       -e 'SELECT 1;' >/dev/null 2>&1; then
+        echo ">>> agencia_user OK en intento $i."
         break
     fi
-    echo ">>> Reintentando verificacion... intento $i"
+    echo ">>> Reintentando verificacion... intento $i/10"
     sleep 1
 done
 
@@ -61,5 +75,5 @@ done
 mysqladmin shutdown -u root 2>/dev/null || true
 sleep 3
 
-echo '>>> [4/4] Arrancando todos los servicios con supervisord...'
+echo '>>> [4/4] Lanzando supervisord...'
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
