@@ -1,445 +1,721 @@
+<?php
+// session_start() siempre primero
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once('./private/procesos/db.php');
+
+// Obtener últimas 3 noticias
+$noticias = [];
+$res = mysqli_query($conn, "SELECT titulo, descripcion, DATE_FORMAT(fecha_publicacion,'%d/%m/%Y') as fecha FROM noticias ORDER BY fecha_publicacion DESC LIMIT 3");
+if ($res) {
+    while ($row = mysqli_fetch_assoc($res)) {
+        $noticias[] = $row;
+    }
+}
+
+// Obtener staff
+$staff = [];
+$res2 = mysqli_query($conn, "SELECT usuario, habbo FROM modificar_administradores ORDER BY id ASC LIMIT 6");
+if ($res2) {
+    while ($row = mysqli_fetch_assoc($res2)) {
+        $staff[] = $row;
+    }
+}
+
+// Total usuarios
+$total_usuarios = 0;
+$res3 = mysqli_query($conn, "SELECT COUNT(*) as total FROM usuarios");
+if ($res3) {
+    $total_usuarios = mysqli_fetch_assoc($res3)['total'];
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="/private/eventos/halloween/img/favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@latest/css/boxicons.min.css">
-    <link rel="stylesheet" href="/private/eventos/halloween/css/swiper-bundle.min.css">
-    <link rel="stylesheet" href="/private/eventos/verano/css/styles.css">
-    <title>Reino Hogwarz ☀️</title>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>AGENCIA HABBO: TWITCH</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="/private/assets/images/favicon.png" type="image/x-icon">
+
+  <!-- Bootstrap -->
+  <link href="/private/assets/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Icons -->
+  <link href="/private/assets/css/icons.css" rel="stylesheet" type="text/css" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* =============================================
+       TEMA VERANO NEON — basado en neon_login_registre.css
+       y app-style.css originales
+       ============================================= */
+
+    /* Animaciones neon — paleta verano (cyan, naranja, amarillo, verde, magenta) */
+    @keyframes neonGlow {
+      0%   { color: #00ff99; box-shadow: 0 0 25px #00ff99; }
+      20%  { color: #00e5ff; box-shadow: 0 0 25px #00e5ff; }
+      40%  { color: #ffeb3b; box-shadow: 0 0 25px #ffeb3b; }
+      60%  { color: #ff6d00; box-shadow: 0 0 25px #ff6d00; }
+      80%  { color: #ff4081; box-shadow: 0 0 25px #ff4081; }
+      100% { color: #00ff99; box-shadow: 0 0 25px #00ff99; }
+    }
+
+    @keyframes bgColorChange {
+      0%   { background-color: #00ff99; }
+      20%  { background-color: #00e5ff; }
+      40%  { background-color: #ffeb3b; }
+      60%  { background-color: #ff6d00; }
+      80%  { background-color: #ff4081; }
+      100% { background-color: #00ff99; }
+    }
+
+    @keyframes borderNeon {
+      0%   { border-color: #00ff99; box-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99; }
+      20%  { border-color: #00e5ff; box-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff; }
+      40%  { border-color: #ffeb3b; box-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffeb3b; }
+      60%  { border-color: #ff6d00; box-shadow: 0 0 10px #ff6d00, 0 0 20px #ff6d00; }
+      80%  { border-color: #ff4081; box-shadow: 0 0 10px #ff4081, 0 0 20px #ff4081; }
+      100% { border-color: #00ff99; box-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99; }
+    }
+
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    @keyframes sunRay {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* BASE — igual que app-style.css */
+    html, body {
+      height: 100%;
+      font-family: 'Roboto', sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    body {
+      background-color: #0f0c29;
+      background-image: linear-gradient(315deg, #0f0c29 0%, #1a0a2e 40%, #0d1a2e 74%);
+      color: rgba(255,255,255,.90);
+      min-height: 100vh;
+    }
+
+    /* NAVBAR */
+    .navbar-landing {
+      background-color: rgba(0,0,0,.4);
+      border-bottom: 1px solid rgba(0,255,153,.25);
+      box-shadow: 0 2px 20px rgba(0,255,153,.1);
+      padding: 0 20px;
+      height: 65px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      backdrop-filter: blur(10px);
+    }
+
+    .navbar-brand-landing {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .navbar-brand-landing img {
+      width: 40px;
+      height: 40px;
+      animation: borderNeon 5s infinite;
+      border-radius: 50%;
+      border: 2px solid #00ff99;
+    }
+
+    .navbar-brand-landing span {
+      font-size: 17px;
+      font-weight: 700;
+      text-transform: uppercase;
+      animation: neonGlow 5s infinite;
+      letter-spacing: 2px;
+    }
+
+    .navbar-links {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar-links a {
+      color: rgba(255,255,255,.8);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+
+    .navbar-links a:hover {
+      border-color: #00ff99;
+      color: #00ff99;
+      text-shadow: 0 0 8px #00ff99;
+    }
+
+    .btn-nav-login {
+      background-color: transparent;
+      border: 1px solid #00ff99 !important;
+      color: #00ff99 !important;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn-nav-login:hover {
+      background-color: #00ff99;
+      color: #0f0c29 !important;
+      box-shadow: 0 0 15px #00ff99;
+    }
+
+    .btn-nav-register {
+      color: #fff !important;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      text-decoration: none;
+      border: none !important;
+      animation: bgColorChange 5s infinite;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(0,255,153,.4);
+    }
+
+    .btn-nav-register:hover {
+      box-shadow: 0 0 20px rgba(0,255,153,.8);
+      transform: scale(1.05);
+      color: #000 !important;
+    }
+
+    /* HERO */
+    .hero-section {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Fondo verano: olas de gradiente animado */
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 20% 50%, rgba(0,255,153,.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 20%, rgba(0,229,255,.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 50% 80%, rgba(255,235,59,.06) 0%, transparent 50%);
+      animation: sunRay 20s linear infinite;
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 700px;
+    }
+
+    .hero-logo {
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 25px;
+      animation: floatUp 3s ease-in-out infinite, borderNeon 5s infinite;
+      border-radius: 50%;
+      border: 3px solid #00ff99;
+      display: block;
+      padding: 5px;
+    }
+
+    .hero-title {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      animation: neonGlow 5s infinite;
+      text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+      margin-bottom: 15px;
+    }
+
+    .hero-subtitle {
+      font-size: 1rem;
+      color: rgba(255,255,255,.75);
+      margin-bottom: 35px;
+      line-height: 1.7;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-hero-primary {
+      padding: 12px 35px;
+      border-radius: 30px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      color: #0f0c29;
+      animation: bgColorChange 5s infinite;
+      box-shadow: 0 0 20px rgba(0,255,153,.5);
+      border: none;
+      transition: all 0.3s ease;
+      letter-spacing: 1px;
+    }
+
+    .btn-hero-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 35px rgba(0,255,153,.8);
+      color: #000;
+    }
+
+    .btn-hero-secondary {
+      padding: 12px 35px;
+      border-radius: 30px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      color: #00ff99;
+      background: transparent;
+      border: 2px solid #00ff99;
+      box-shadow: 0 0 10px rgba(0,255,153,.3);
+      transition: all 0.3s ease;
+      letter-spacing: 1px;
+      animation: borderNeon 5s infinite;
+    }
+
+    .btn-hero-secondary:hover {
+      background: rgba(0,255,153,.15);
+      box-shadow: 0 0 25px rgba(0,255,153,.6);
+      color: #00ff99;
+    }
+
+    /* STATS */
+    .stats-section {
+      padding: 50px 20px;
+      background: rgba(0,0,0,.25);
+      border-top: 1px solid rgba(0,255,153,.15);
+      border-bottom: 1px solid rgba(0,255,153,.15);
+    }
+
+    .stat-card {
+      background-color: rgba(0,0,0,.3);
+      border: 1px solid;
+      border-radius: 15px;
+      padding: 30px 20px;
+      text-align: center;
+      animation: borderNeon 5s infinite;
+      transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      animation: neonGlow 5s infinite;
+      text-shadow: 0 0 15px currentColor;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: rgba(255,255,255,.65);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 5px;
+    }
+
+    /* NOTICIAS */
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      animation: neonGlow 5s infinite;
+      text-shadow: 0 0 10px currentColor;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: rgba(255,255,255,.55);
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+
+    .news-card {
+      background-color: rgba(0,0,0,.35);
+      border: 1px solid rgba(0,255,153,.25);
+      border-radius: 15px;
+      padding: 25px;
+      height: 100%;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .news-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      animation: bgColorChange 5s infinite;
+    }
+
+    .news-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(0,255,153,.5);
+      box-shadow: 0 10px 30px rgba(0,255,153,.15);
+    }
+
+    .news-date {
+      font-size: 11px;
+      color: rgba(255,255,255,.45);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .news-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #00ff99;
+      margin-bottom: 12px;
+      text-shadow: 0 0 8px rgba(0,255,153,.4);
+    }
+
+    .news-desc {
+      font-size: 13px;
+      color: rgba(255,255,255,.65);
+      line-height: 1.6;
+    }
+
+    /* STAFF */
+    .staff-card {
+      background-color: rgba(0,0,0,.3);
+      border: 1px solid;
+      border-radius: 15px;
+      padding: 20px 15px;
+      text-align: center;
+      animation: borderNeon 5s infinite;
+      transition: all 0.3s ease;
+    }
+
+    .staff-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 30px rgba(0,255,153,.2);
+    }
+
+    .staff-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid #00ff99;
+      animation: borderNeon 5s infinite;
+      margin: 0 auto 10px;
+      display: block;
+      object-fit: cover;
+      background: rgba(0,0,0,.3);
+    }
+
+    .staff-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #00ff99;
+      text-shadow: 0 0 6px rgba(0,255,153,.5);
+    }
+
+    .staff-habbo {
+      font-size: 11px;
+      color: rgba(255,255,255,.5);
+      margin-top: 3px;
+    }
+
+    /* REDES */
+    .social-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border: 2px solid;
+      letter-spacing: 0.5px;
+    }
+
+    .social-btn-wa  { color: #25d366; border-color: #25d366; }
+    .social-btn-ig  { color: #e1306c; border-color: #e1306c; }
+    .social-btn-tw  { color: #1da1f2; border-color: #1da1f2; }
+    .social-btn-dc  { color: #7289da; border-color: #7289da; }
+
+    .social-btn-wa:hover  { background: #25d366; color: #000; box-shadow: 0 0 20px rgba(37,211,102,.5); }
+    .social-btn-ig:hover  { background: #e1306c; color: #fff; box-shadow: 0 0 20px rgba(225,48,108,.5); }
+    .social-btn-tw:hover  { background: #1da1f2; color: #fff; box-shadow: 0 0 20px rgba(29,161,242,.5); }
+    .social-btn-dc:hover  { background: #7289da; color: #fff; box-shadow: 0 0 20px rgba(114,137,218,.5); }
+
+    /* FOOTER */
+    .footer-landing {
+      background: rgba(0,0,0,.5);
+      border-top: 1px solid rgba(0,255,153,.2);
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .footer-links a {
+      color: rgba(255,255,255,.55);
+      text-decoration: none;
+      font-size: 13px;
+      margin: 0 12px;
+      transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+      color: #00ff99;
+      text-shadow: 0 0 8px #00ff99;
+    }
+
+    .footer-copy {
+      color: rgba(255,255,255,.3);
+      font-size: 12px;
+      margin-top: 15px;
+    }
+
+    /* DECORACION VERANO — burbujas flotantes */
+    .bubble {
+      position: fixed;
+      border-radius: 50%;
+      opacity: 0.07;
+      pointer-events: none;
+      animation: floatUp 6s ease-in-out infinite;
+    }
+    .bubble-1 { width: 300px; height: 300px; background: radial-gradient(circle, #00ff99, transparent); top: 10%; left: -80px; animation-delay: 0s; }
+    .bubble-2 { width: 200px; height: 200px; background: radial-gradient(circle, #00e5ff, transparent); top: 50%; right: -50px; animation-delay: 2s; }
+    .bubble-3 { width: 150px; height: 150px; background: radial-gradient(circle, #ffeb3b, transparent); bottom: 10%; left: 30%; animation-delay: 4s; }
+
+    /* Responsive navbar */
+    @media (max-width: 768px) {
+      .navbar-landing { flex-wrap: wrap; height: auto; padding: 12px 15px; gap: 10px; }
+      .navbar-links   { gap: 6px; flex-wrap: wrap; }
+      .navbar-links a { font-size: 12px; padding: 4px 10px; }
+    }
+  </style>
 </head>
 <body>
 
-<?php
-require_once('private/procesos/db.php');
+<!-- Burbujas decorativas verano -->
+<div class="bubble bubble-1"></div>
+<div class="bubble bubble-2"></div>
+<div class="bubble bubble-3"></div>
 
-// Admins
-$admins = [];
-$r = $conn->query("SELECT nombre, rango, cara, accion, bebida FROM modificar_administradores LIMIT 12");
-if ($r && $r->num_rows > 0) while($row = $r->fetch_assoc()) $admins[] = $row;
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar-landing">
+  <a href="/index.php" class="navbar-brand-landing">
+    <img src="/private/assets/images/logo-icon.png" alt="Logo">
+    <span>Agencia Habbo</span>
+  </a>
 
-// Membresias
-$membresias = [];
-$r2 = $conn->query("SELECT id, nombre, precio, duracion, beneficios FROM modificar_membresias ORDER BY precio DESC");
-if ($r2 && $r2->num_rows > 0) while($row = $r2->fetch_assoc()) $membresias[] = $row;
+  <ul class="navbar-links">
+    <li><a href="#noticias"><i class="fa fa-newspaper mr-1"></i> Noticias</a></li>
+    <li><a href="#staff"><i class="fa fa-users mr-1"></i> Staff</a></li>
+    <li><a href="#redes"><i class="fa fa-share-alt mr-1"></i> Redes</a></li>
+    <?php if (isset($_SESSION['usuario'])): ?>
+      <li><a href="/panel.php" class="btn-nav-login"><i class="fa fa-th-large mr-1"></i> Panel</a></li>
+      <li><a href="/private/procesos/cerrar_sesion.php" class="btn-nav-register"><i class="fa fa-sign-out-alt mr-1"></i> Salir</a></li>
+    <?php else: ?>
+      <li><a href="/login.php" class="btn-nav-login"><i class="fa fa-sign-in-alt mr-1"></i> Entrar</a></li>
+      <li><a href="/register.php" class="btn-nav-register"><i class="fa fa-user-plus mr-1"></i> Registro</a></li>
+    <?php endif; ?>
+  </ul>
+</nav>
 
-// Noticias
-$noticias = [];
-$r3 = $conn->query("SELECT id, titulo, contenido, autor, imagen, fecha FROM publicaciones ORDER BY fecha DESC LIMIT 6");
-if ($r3 && $r3->num_rows > 0) while($row = $r3->fetch_assoc()) $noticias[] = $row;
-
-// Notificaciones para usuario logueado
-$notificaciones = [];
-$notif_count = 0;
-if (isset($_SESSION['usuario_id'])) {
-    $uid = intval($_SESSION['usuario_id']);
-    $rn = $conn->query("SELECT id, mensaje, leida, fecha FROM notificaciones WHERE id_usuario = $uid ORDER BY fecha DESC LIMIT 5");
-    if ($rn && $rn->num_rows > 0) {
-        while($row = $rn->fetch_assoc()) {
-            $notificaciones[] = $row;
-            if (!$row['leida']) $notif_count++;
-        }
-    }
-}
-?>
-
-<!-- ======= HEADER ======= -->
-<header class="header" id="header">
-    <nav class="nav container">
-        <a href="#" class="nav__logo">
-            <img src="/private/eventos/halloween/img/reino.png" style="width:180px;" class="nav__logo-img">
-        </a>
-
-        <div class="nav__menu" id="nav-menu">
-            <ul class="nav__list">
-                <li><a href="#home" class="nav__link active-link">Inicio</a></li>
-                <li><a href="#radio" class="nav__link">Radio</a></li>
-                <li><a href="#noticias" class="nav__link">Noticias</a></li>
-                <li><a href="#membresias" class="nav__link">Membresías</a></li>
-                <li><a href="#staff" class="nav__link">Staff</a></li>
-            </ul>
-            <img src="/private/eventos/halloween/img/nav-img.png" alt="" class="nav__img">
-            <div class="nav__close" id="nav-close"><i class='bx bx-x'></i></div>
-        </div>
-
-        <div style="display:flex;align-items:center;gap:.75rem;">
-            <!-- Notificaciones -->
-            <div style="position:relative;">
-                <div class="nav__notif" id="notifBtn" onclick="toggleNotif()">
-                    <i class='bx bx-bell'></i>
-                    <?php if($notif_count > 0): ?>
-                    <span class="nav__notif-count"><?= $notif_count ?></span>
-                    <?php endif; ?>
-                </div>
-                <div class="notif__dropdown" id="notifDropdown">
-                    <div class="notif__title">🔔 Notificaciones</div>
-                    <?php if(empty($notificaciones)): ?>
-                    <div class="notif__item">
-                        <span class="notif__icon">☀️</span>
-                        <div class="notif__text">¡Bienvenido al Reino Hogwarz! No hay notificaciones nuevas.
-                            <div class="notif__time">Ahora</div>
-                        </div>
-                    </div>
-                    <?php else: foreach($notificaciones as $n): ?>
-                    <div class="notif__item">
-                        <span class="notif__icon"><?= $n['leida'] ? '📩' : '🔔' ?></span>
-                        <div class="notif__text"><?= htmlspecialchars($n['mensaje']) ?>
-                            <div class="notif__time"><?= date('d/m H:i', strtotime($n['fecha'])) ?></div>
-                        </div>
-                    </div>
-                    <?php endforeach; endif; ?>
-                </div>
-            </div>
-
-            <?php if(isset($_SESSION['usuario'])): ?>
-                <a href="private/panel/inicio.php" class="button button--ghost" style="padding:.5rem 1rem;font-size:.85rem;">Panel</a>
-            <?php else: ?>
-                <a href="login.php" class="button button--ghost" style="padding:.5rem 1rem;font-size:.85rem;">Login</a>
-                <a href="register.php" class="button" style="padding:.5rem 1rem;font-size:.85rem;">Registrarse</a>
-            <?php endif; ?>
-            <div class="nav__toggle" id="nav-toggle"><i class='bx bx-grid-alt'></i></div>
-        </div>
-    </nav>
-</header>
-
-<main class="main">
-
-<!-- ======= HOME SWIPER ======= -->
-<section class="home container" id="home">
-    <div class="swiper home-swiper">
-        <div class="swiper-wrapper">
-            <section class="swiper-slide">
-                <div class="home__content grid">
-                    <div class="home__group">
-                        <img src="/private/eventos/halloween/img/home1-img.png" alt="" class="home__img">
-                    </div>
-                    <div class="home__data">
-                        <h3 class="home__subtitle">☀️ #1 Bienvenido al Reino Hogwarz</h3>
-                        <h1 class="home__title">¡VERANO <br>MÁGICO <br>2026!</h1>
-                        <p class="home__description">La agencia más épica de Habbo está de vuelta con todo para el verano. Misiones, torneos, paga garantizada y la mejor comunidad.</p>
-                        <div class="home__buttons">
-                            <a href="register.php" class="button button--flex"><i class='bx bx-star'></i> Unirme</a>
-                            <a href="#radio" class="button button--ghost button--flex"><i class='bx bx-radio'></i> Radio</a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <section class="swiper-slide">
-                <div class="home__content grid">
-                    <div class="home__group">
-                        <img src="/private/eventos/halloween/img/home2-img.png" alt="" class="home__img">
-                    </div>
-                    <div class="home__data">
-                        <h3 class="home__subtitle">🏆 #2 Compite y escala</h3>
-                        <h1 class="home__title">SUBE DE <br>RANGO <br>RÁPIDO</h1>
-                        <p class="home__description">Completa misiones de verano, gana torneos de playa y demuestra quién manda en el reino. Cada punto cuenta.</p>
-                        <div class="home__buttons">
-                            <a href="register.php" class="button button--flex"><i class='bx bx-trophy'></i> Empezar</a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <section class="swiper-slide">
-                <div class="home__content grid">
-                    <div class="home__group">
-                        <img src="/private/eventos/halloween/img/home3-img.png" alt="" class="home__img">
-                    </div>
-                    <div class="home__data">
-                        <h3 class="home__subtitle">💰 #3 La mejor paga</h3>
-                        <h1 class="home__title">MEJOR <br>PAGA & <br>ADMIN</h1>
-                        <p class="home__description">Paga semanal garantizada, administración transparente y un equipo que trabaja para ti. Aquí tu esfuerzo tiene recompensa real.</p>
-                        <div class="home__buttons">
-                            <a href="#membresias" class="button button--flex"><i class='bx bx-diamond'></i> Membresías</a>
-                            <a href="login.php" class="button button--ghost">Mi cuenta</a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-        <div class="swiper-pagination"></div>
+<!-- ===== HERO ===== -->
+<section class="hero-section">
+  <div class="hero-content">
+    <img src="/private/assets/images/logo-icon.png" alt="Logo Agencia Habbo" class="hero-logo">
+    <h1 class="hero-title">☀️ Agencia Habbo Twitch</h1>
+    <p class="hero-subtitle">
+      La agencia líder de Habbo. Únete a nuestro equipo de staff,<br>
+      crece con nosotros y sé parte de algo único este verano. 🌊
+    </p>
+    <div class="hero-buttons">
+      <?php if (isset($_SESSION['usuario'])): ?>
+        <a href="/panel.php" class="btn-hero-primary"><i class="fa fa-th-large mr-2"></i> Ir al Panel</a>
+      <?php else: ?>
+        <a href="/register.php" class="btn-hero-primary"><i class="fa fa-user-plus mr-2"></i> Únete Ahora</a>
+        <a href="/login.php" class="btn-hero-secondary"><i class="fa fa-sign-in-alt mr-2"></i> Iniciar Sesión</a>
+      <?php endif; ?>
     </div>
+  </div>
 </section>
 
-<!-- ======= RADIO HABBO ======= -->
-<section class="section" id="radio">
-    <h2 class="section__title">📻 Radio Habbo</h2>
-    <div class="container">
-        <div class="radio__container">
-            <div class="radio__icon-wrap" id="radioDisc">🎵</div>
-            <div class="radio__info">
-                <div class="radio__station">Radio Reino Hogwarz</div>
-                <div class="radio__now">En vivo ahora:</div>
-                <div class="radio__track" id="radioTrack">Cargando estación...</div>
-            </div>
-            <div class="radio__controls">
-                <button class="radio__play" id="radioPlayBtn" onclick="toggleRadio()">
-                    <i class='bx bx-play' id="radioIcon"></i>
-                </button>
-                <div class="radio__vol">
-                    <i class='bx bx-volume-full' style="font-size:.9rem;"></i>
-                    <input type="range" id="radioVol" min="0" max="1" step="0.1" value="0.7" oninput="setVolume(this.value)">
-                </div>
-            </div>
+<!-- ===== STATS ===== -->
+<section class="stats-section">
+  <div class="container">
+    <div class="row text-center justify-content-center g-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <span class="stat-number"><?php echo number_format($total_usuarios); ?></span>
+          <span class="stat-label">Usuarios Registrados</span>
         </div>
-
-        <!-- Audio oculto -->
-        <audio id="radioAudio" preload="none">
-            <!-- Reemplaza este src con la URL de tu stream de radio -->
-            <source src="https://stream.kusmedios.lat/radio" type="audio/mpeg">
-        </audio>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <span class="stat-number"><?php echo count($staff); ?>+</span>
+          <span class="stat-label">Staff Activo</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <span class="stat-number"><?php echo count($noticias); ?></span>
+          <span class="stat-label">Últimas Noticias</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <span class="stat-number">24/7</span>
+          <span class="stat-label">Siempre Activos</span>
+        </div>
+      </div>
     </div>
+  </div>
 </section>
 
-<!-- ======= NOTICIAS ======= -->
-<?php if(!empty($noticias)): ?>
-<section class="section" id="noticias">
-    <h2 class="section__title">📰 Noticias de la Agencia</h2>
-    <div class="container">
-        <div class="news__grid">
-        <?php foreach($noticias as $noticia):
-            $tagLabels = ['🔥 Urgente','⭐ Destacado','🎯 Evento','💬 Comunidad','📢 Anuncio'];
-            $tag = $tagLabels[array_rand($tagLabels)];
-            $excerpt = mb_substr(strip_tags($noticia['contenido']), 0, 100) . '...';
-            $fecha = date('d M Y', strtotime($noticia['fecha']));
-        ?>
-        <div class="news__card">
-            <?php if(!empty($noticia['imagen'])): ?>
-            <img src="<?= htmlspecialchars($noticia['imagen']) ?>" class="news__img" alt="" onerror="this.style.display='none'">
-            <?php else: ?>
-            <div class="news__img" style="display:flex;align-items:center;justify-content:center;font-size:3rem;">📰</div>
-            <?php endif; ?>
-            <div class="news__body">
-                <span class="news__tag"><?= $tag ?></span>
-                <div class="news__title"><?= htmlspecialchars($noticia['titulo']) ?></div>
-                <p class="news__excerpt"><?= htmlspecialchars($excerpt) ?></p>
-                <div class="news__meta">
-                    <div class="news__author">
-                        <img src="https://www.habbo.es/habbo-imaging/avatarimage?user=<?= urlencode($noticia['autor']) ?>&size=s" alt="">
-                        <?= htmlspecialchars($noticia['autor']) ?>
-                    </div>
-                    <span><?= $fecha ?></span>
-                </div>
-                <!-- Reacciones -->
-                <div class="reactions" data-id="<?= $noticia['id'] ?>">
-                    <button class="reaction__btn" onclick="reaccionar(this,'❤️')" title="Me encanta">❤️ <span>0</span></button>
-                    <button class="reaction__btn" onclick="reaccionar(this,'🔥')" title="Fuego">🔥 <span>0</span></button>
-                    <button class="reaction__btn" onclick="reaccionar(this,'😂')" title="Divertido">😂 <span>0</span></button>
-                    <button class="reaction__btn" onclick="reaccionar(this,'😮')" title="Sorprendido">😮 <span>0</span></button>
-                    <button class="reaction__btn" onclick="reaccionar(this,'👏')" title="Aplausos">👏 <span>0</span></button>
-                </div>
-                <!-- Comentarios toggle -->
-                <div style="margin-top:.75rem;">
-                    <button class="reaction__btn" onclick="toggleComments('c<?= $noticia['id'] ?>')" style="font-size:.78rem;">
-                        <i class='bx bx-comment'></i> <span>Comentar</span>
-                    </button>
-                </div>
-                <div id="c<?= $noticia['id'] ?>" style="display:none;margin-top:1rem;">
-                    <div class="comments__section">
-                        <div class="comment__form">
-                            <div class="comment__avatar">😎</div>
-                            <div class="comment__input-wrap">
-                                <textarea class="comment__input" placeholder="Escribe un comentario..." rows="2"></textarea>
-                                <button class="comment__submit" onclick="addComment(this, <?= $noticia['id'] ?>)">Enviar</button>
-                            </div>
-                        </div>
-                        <div class="comment__list" id="cl<?= $noticia['id'] ?>"></div>
-                    </div>
-                </div>
-            </div>
+<!-- ===== NOTICIAS ===== -->
+<section id="noticias" style="padding: 70px 20px;">
+  <div class="container">
+    <h2 class="section-title">📰 Últimas Noticias</h2>
+    <p class="section-subtitle">Lo más reciente de la agencia</p>
+
+    <?php if (!empty($noticias)): ?>
+    <div class="row g-4">
+      <?php foreach ($noticias as $noticia): ?>
+      <div class="col-md-4">
+        <div class="news-card">
+          <div class="news-date"><i class="fa fa-calendar-alt mr-1"></i><?php echo htmlspecialchars($noticia['fecha']); ?></div>
+          <div class="news-title"><?php echo htmlspecialchars($noticia['titulo']); ?></div>
+          <p class="news-desc"><?php echo nl2br(htmlspecialchars(substr($noticia['descripcion'], 0, 150))); ?>...</p>
         </div>
-        <?php endforeach; ?>
-        </div>
+      </div>
+      <?php endforeach; ?>
     </div>
+    <?php else: ?>
+    <div class="text-center" style="padding:40px; color:rgba(255,255,255,.4);">
+      <i class="fa fa-newspaper fa-3x mb-3" style="color:rgba(0,255,153,.3);"></i>
+      <p>No hay noticias por el momento. ¡Vuelve pronto!</p>
+    </div>
+    <?php endif; ?>
+  </div>
 </section>
-<?php endif; ?>
 
-<!-- ======= MEMBRESIAS ======= -->
-<?php if(!empty($membresias)): ?>
-<section class="section" id="membresias">
-    <h2 class="section__title">💎 Membresías de Verano</h2>
-    <div class="container">
-        <div class="trick__container grid">
-        <?php
-        $imgs = [
-            1 => '/private/images/images/membresias/diamante.jpg',
-            2 => '/private/images/images/membresias/guarda_paga_plus.jpg',
-            3 => '/private/images/images/membresias/level_up.jpg',
-            4 => '/private/images/images/membresias/premium.jpg',
-            5 => '/private/images/images/membresias/regla_libre.jpg',
-            6 => '/private/images/images/membresias/guarda_paga.jpg',
-        ];
-        foreach($membresias as $m):
-            $img = $imgs[$m['id']] ?? '';
-        ?>
-        <div class="trick__content">
-            <?php if($img): ?>
-            <img src="<?= htmlspecialchars($img) ?>" class="trick__img" alt="" onerror="this.style.display='none'">
-            <?php else: ?>
-            <div style="font-size:3rem;margin-bottom:.75rem;">🌟</div>
-            <?php endif; ?>
-            <span class="trick__subtitle"><?= htmlspecialchars($m['duracion']) ?></span>
-            <span class="trick__title"><?= htmlspecialchars($m['nombre']) ?></span>
-            <span class="trick__price"><?= htmlspecialchars($m['precio']) ?> Créditos</span>
-            <?php if(!empty($m['beneficios'])): ?>
-            <p style="font-size:.75rem;color:var(--text-color-light);padding:.5rem .75rem 0;line-height:1.4;"><?= htmlspecialchars($m['beneficios']) ?></p>
-            <?php endif; ?>
-            <a href="login.php" class="trick__button"><i class='bx bx-cart trick__icon'></i></a>
+<!-- ===== STAFF ===== -->
+<section id="staff" style="padding: 70px 20px; background: rgba(0,0,0,.2);">
+  <div class="container">
+    <h2 class="section-title">🌟 Nuestro Staff</h2>
+    <p class="section-subtitle">El equipo que hace posible la agencia</p>
+
+    <?php if (!empty($staff)): ?>
+    <div class="row g-4 justify-content-center">
+      <?php foreach ($staff as $miembro): ?>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="staff-card">
+          <img
+            src="https://www.habbo.es/habbo-imaging/avatarimage?figure=<?php echo urlencode($miembro['habbo'] ?? 'hd-180-1.ch-215-62.lg-275-62'); ?>&action=std&gesture=sml&direction=2&head_direction=2&size=b"
+            alt="<?php echo htmlspecialchars($miembro['usuario']); ?>"
+            class="staff-avatar"
+            onerror="this.src='https://www.habbo.es/habbo-imaging/avatarimage?figure=hd-180-1.ch-215-62.lg-275-62&action=std&gesture=sml&direction=2&head_direction=2&size=b'"
+          >
+          <div class="staff-name"><?php echo htmlspecialchars($miembro['usuario']); ?></div>
+          <div class="staff-habbo">🎮 <?php echo htmlspecialchars($miembro['habbo'] ?? ''); ?></div>
         </div>
-        <?php endforeach; ?>
-        </div>
+      </div>
+      <?php endforeach; ?>
     </div>
+    <?php else: ?>
+    <div class="text-center" style="padding:40px; color:rgba(255,255,255,.4);">
+      <i class="fa fa-users fa-3x mb-3" style="color:rgba(0,255,153,.3);"></i>
+      <p>El staff se presentará próximamente.</p>
+    </div>
+    <?php endif; ?>
+  </div>
 </section>
-<?php endif; ?>
 
-<!-- ======= STAFF ======= -->
-<?php include "private/procesos/administradores.php"; ?>
-
-<!-- ======= RANGOS ======= -->
-<?php include "private/procesos/rangos.php"; ?>
-
-</main>
-
-<!-- ======= FOOTER ======= -->
-<footer class="footer section">
-    <div class="container footer__container grid">
-        <div>
-            <a href="#" class="footer__logo">☀️ Reino Hogwarz</a>
-            <p class="footer__description">La mejor agencia de Habbo. Paga garantizada, staff dedicado y la comunidad más activa.</p>
-            <div class="footer__social">
-                <a href="#" class="footer__social-link"><i class='bx bxl-discord'></i></a>
-                <a href="#" class="footer__social-link"><i class='bx bxl-twitter'></i></a>
-                <a href="#" class="footer__social-link"><i class='bx bx-radio'></i></a>
-            </div>
-        </div>
-        <div>
-            <h3 class="footer__title">Navegación</h3>
-            <ul class="footer__links">
-                <li><a href="#home" class="footer__link">Inicio</a></li>
-                <li><a href="#radio" class="footer__link">Radio</a></li>
-                <li><a href="#noticias" class="footer__link">Noticias</a></li>
-                <li><a href="#membresias" class="footer__link">Membresías</a></li>
-            </ul>
-        </div>
-        <div>
-            <h3 class="footer__title">Cuenta</h3>
-            <ul class="footer__links">
-                <li><a href="login.php" class="footer__link">Iniciar sesión</a></li>
-                <li><a href="register.php" class="footer__link">Registrarse</a></li>
-            </ul>
-        </div>
-        <div>
-            <h3 class="footer__title">Contacto</h3>
-            <p class="footer__description" style="font-size:.8rem;">¿Dudas? Encuentra a un admin en Habbo o escríbenos en Discord.</p>
-        </div>
+<!-- ===== REDES SOCIALES ===== -->
+<section id="redes" style="padding: 70px 20px;">
+  <div class="container">
+    <h2 class="section-title">🌐 Síguenos</h2>
+    <p class="section-subtitle">Conéctate con la comunidad</p>
+    <div class="d-flex flex-wrap justify-content-center gap-3">
+      <a href="#" class="social-btn social-btn-wa" target="_blank" rel="noopener noreferrer">
+        <i class="fab fa-whatsapp"></i> WhatsApp
+      </a>
+      <a href="#" class="social-btn social-btn-ig" target="_blank" rel="noopener noreferrer">
+        <i class="fab fa-instagram"></i> Instagram
+      </a>
+      <a href="#" class="social-btn social-btn-tw" target="_blank" rel="noopener noreferrer">
+        <i class="fab fa-twitter"></i> Twitter/X
+      </a>
+      <a href="#" class="social-btn social-btn-dc" target="_blank" rel="noopener noreferrer">
+        <i class="fab fa-discord"></i> Discord
+      </a>
     </div>
-    <span class="footer__copy">© 2026 Reino Hogwarz — Agencia Habbo. Todos los derechos reservados.</span>
-    <img src="/private/eventos/halloween/img/footer1-img.png" alt="" class="footer__img-one">
-    <img src="/private/eventos/halloween/img/footer2-img.png" alt="" class="footer__img-two">
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer-landing">
+  <div class="footer-links">
+    <?php if (isset($_SESSION['usuario'])): ?>
+      <a href="/panel.php"><i class="fa fa-th-large"></i> Panel</a>
+      <a href="/private/procesos/cerrar_sesion.php"><i class="fa fa-sign-out-alt"></i> Cerrar Sesión</a>
+    <?php else: ?>
+      <a href="/login.php"><i class="fa fa-sign-in-alt"></i> Iniciar Sesión</a>
+      <a href="/register.php"><i class="fa fa-user-plus"></i> Registrarse</a>
+    <?php endif; ?>
+    <a href="#noticias"><i class="fa fa-newspaper"></i> Noticias</a>
+    <a href="#staff"><i class="fa fa-users"></i> Staff</a>
+    <a href="#redes"><i class="fa fa-share-alt"></i> Redes</a>
+  </div>
+  <p class="footer-copy">☀️ &copy; <?php echo date('Y'); ?> Agencia Habbo Twitch — Todos los derechos reservados</p>
 </footer>
-
-<a href="#" class="scrollup" id="scroll-up">
-    <i class='bx bx-up-arrow-alt scrollup__icon'></i>
-</a>
-
-<script src="/private/eventos/halloween/js/scrollreveal.min.js"></script>
-<script src="/private/eventos/halloween/js/swiper-bundle.min.js"></script>
-<script src="/private/eventos/halloween/js/main.js"></script>
-<script>
-// ===== SWIPER =====
-const homeSwiper = new Swiper('.home-swiper', {
-    loop: true,
-    autoplay: { delay: 5000, disableOnInteraction: false },
-    pagination: { el: '.swiper-pagination', clickable: true },
-});
-
-// ===== NOTIFICACIONES =====
-function toggleNotif() {
-    const d = document.getElementById('notifDropdown');
-    d.classList.toggle('open');
-}
-document.addEventListener('click', function(e){
-    if (!e.target.closest('#notifBtn') && !e.target.closest('#notifDropdown')) {
-        document.getElementById('notifDropdown').classList.remove('open');
-    }
-});
-
-// ===== RADIO =====
-let radioPlaying = false;
-const audio = document.getElementById('radioAudio');
-const disc = document.getElementById('radioDisc');
-const icon = document.getElementById('radioIcon');
-const track = document.getElementById('radioTrack');
-
-function toggleRadio() {
-    if (radioPlaying) {
-        audio.pause();
-        disc.classList.add('paused');
-        icon.className = 'bx bx-play';
-        track.textContent = 'Pausado';
-        radioPlaying = false;
-    } else {
-        audio.play().catch(() => { track.textContent = 'Stream no disponible'; });
-        disc.classList.remove('paused');
-        icon.className = 'bx bx-pause';
-        track.textContent = '🎵 En vivo — Radio Reino Hogwarz';
-        radioPlaying = true;
-    }
-}
-function setVolume(v) { audio.volume = v; }
-
-// ===== REACCIONES =====
-function reaccionar(btn, emoji) {
-    const active = btn.classList.contains('active');
-    const span = btn.querySelector('span');
-    let count = parseInt(span.textContent) || 0;
-    if (active) {
-        btn.classList.remove('active');
-        span.textContent = Math.max(0, count - 1);
-    } else {
-        btn.classList.add('active');
-        span.textContent = count + 1;
-    }
-}
-
-// ===== COMENTARIOS =====
-function toggleComments(id) {
-    const el = document.getElementById(id);
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-function addComment(btn, noticiaId) {
-    const wrap = btn.closest('.comment__input-wrap');
-    const textarea = wrap.querySelector('textarea');
-    const text = textarea.value.trim();
-    if (!text) return;
-
-    const list = document.getElementById('cl' + noticiaId);
-    const item = document.createElement('div');
-    item.className = 'comment__item';
-    item.innerHTML = `
-        <div class="comment__avatar">😊</div>
-        <div class="comment__body">
-            <div class="comment__header">
-                <span class="comment__name">Tú</span>
-                <span class="comment__time">Ahora</span>
-            </div>
-            <p class="comment__text">${text.replace(/</g,'&lt;')}</p>
-            <div class="comment__actions">
-                <span class="comment__like" onclick="this.style.color='hsl(340,90%,55%)'">❤️ Me gusta</span>
-                <span class="comment__reply">↩️ Responder</span>
-            </div>
-        </div>`;
-    list.prepend(item);
-    textarea.value = '';
-}
-
-// ===== SCROLL UP =====
-window.addEventListener('scroll', () => {
-    document.getElementById('scroll-up').classList.toggle('show-scroll', window.scrollY >= 400);
-    document.getElementById('header').classList.toggle('scroll-header', window.scrollY >= 50);
-});
-</script>
 
 </body>
 </html>
