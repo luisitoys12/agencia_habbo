@@ -7,10 +7,21 @@ CREATE USER IF NOT EXISTS 'agencia_user'@'localhost' IDENTIFIED BY 'agencia_pass
 CREATE USER IF NOT EXISTS 'agencia_user'@'127.0.0.1' IDENTIFIED BY 'agencia_pass2026';
 GRANT ALL PRIVILEGES ON sistema_agencia.* TO 'agencia_user'@'localhost';
 GRANT ALL PRIVILEGES ON sistema_agencia.* TO 'agencia_user'@'127.0.0.1';
-
--- Permitir root sin password por TCP
 ALTER USER 'root'@'localhost' IDENTIFIED BY '';
 FLUSH PRIVILEGES;
+
+-- ============================================================
+-- TABLA: registro_usuario (login/register)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `registro_usuario` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `usuario_registro` VARCHAR(100) NOT NULL UNIQUE,
+  `password_registro` VARCHAR(255) NOT NULL,
+  `rol_id` INT NOT NULL DEFAULT 1,
+  `Rango_asignado` INT NOT NULL DEFAULT 1,
+  `fecha_registro` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `ip_registro` VARCHAR(45) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
 -- TABLA: modificar_administradores
@@ -24,7 +35,6 @@ CREATE TABLE IF NOT EXISTS `modificar_administradores` (
   `bebida` VARCHAR(50) NOT NULL DEFAULT 'drk=1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Admin por defecto
 INSERT INTO `modificar_administradores` (`nombre`, `rango`, `cara`, `accion`, `bebida`) VALUES
 ('Admin', 'Dueño', 'sml', 'std', 'drk=1');
 
@@ -48,7 +58,7 @@ INSERT INTO `modificar_membresias` (`nombre`, `precio`, `duracion`, `beneficios`
 ('Guarda Paga', 15, '7 días', 'Paga semanal garantizada');
 
 -- ============================================================
--- TABLA: personas (usuarios registrados)
+-- TABLA: personas
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `personas` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -101,7 +111,7 @@ CREATE TABLE IF NOT EXISTS `pagas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
--- TABLA: publicaciones / noticias
+-- TABLA: publicaciones
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `publicaciones` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -113,4 +123,4 @@ CREATE TABLE IF NOT EXISTS `publicaciones` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `publicaciones` (`titulo`, `contenido`, `autor`) VALUES
-('¡Bienvenidos al Reino Hogwarts!', 'Esta es la agencia oficial. Únete y conviértete en un mago.', 'Admin');
+('¡Bienvenidos al Reino Hogwartz!', 'Esta es la agencia oficial. Únete y convíértete en un mago.', 'Admin');
