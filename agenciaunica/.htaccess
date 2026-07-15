@@ -1,1 +1,17 @@
 Options -Indexes
+DirectoryIndex index.php index.html
+
+# Redirigir errores 404 al inicio
+ErrorDocument 404 /index.php
+
+# Activar rewrite
+RewriteEngine On
+
+# Si el archivo o directorio existe, servirlo directamente
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rutas del panel de admin → private/panel/
+RewriteRule ^admin/?$ /private/panel/index.php [L,R=301]
+RewriteRule ^admin/noticias/?$ /private/panel/noticias.php [L,R=301]
+RewriteRule ^admin/notificaciones/?$ /private/panel/notificaciones.php [L,R=301]
