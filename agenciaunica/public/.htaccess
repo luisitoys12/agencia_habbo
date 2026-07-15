@@ -1,0 +1,19 @@
+Options -Indexes
+DirectoryIndex index.php index.html
+
+# Redirigir la raiz del panel al index.php del panel
+ErrorDocument 404 /index.php
+
+RewriteEngine On
+
+# Archivos y carpetas reales: servir directo
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Todo lo demas -> index.php del panel
+RewriteRule ^ index.php [L]
+
+# Rutas cortas del panel admin
+RewriteRule ^admin/?$ ../private/panel/index.php [L]
+RewriteRule ^admin/noticias/?$ ../private/panel/noticias.php [L]
+RewriteRule ^admin/notificaciones/?$ ../private/panel/notificaciones.php [L]
