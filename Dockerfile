@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 # Habilitar mod_rewrite
 RUN a2enmod rewrite
 
-# Puerto 8080 para Hyperlift
+# Puerto 8080 para Fly.io
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf \
     && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-available/000-default.conf
 
@@ -23,7 +23,7 @@ RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf 
     && echo 'ServerName localhost' >> /etc/apache2/apache2.conf
 
 # Copiar código fuente
-COPY sistema_agencia/ /var/www/html/
+COPY agenciaunica/ /var/www/html/
 
 # Copiar scripts
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -34,7 +34,7 @@ RUN chmod +x /init-db.sh
 # Inicializar el datadir de MariaDB en BUILD TIME
 RUN mysql_install_db --user=mysql --datadir=/var/lib/mysql
 
-# Ejecutar MariaDB con --init-file para crear DB y usuario SIN password root
+# Ejecutar MariaDB con --init-file para crear DB y usuario
 RUN mysqld_safe --init-file=/mysql-init.sql --user=mysql & \
     sleep 8 && \
     mysqladmin shutdown -u root 2>/dev/null || true
