@@ -11,7 +11,7 @@ ALTER USER 'root'@'localhost' IDENTIFIED BY '';
 FLUSH PRIVILEGES;
 
 -- ============================================================
--- TABLA: registro_usuario (login/register)
+-- TABLA: registro_usuario
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `registro_usuario` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -56,6 +56,33 @@ INSERT INTO `modificar_membresias` (`nombre`, `precio`, `duracion`, `beneficios`
 ('Premium', 40, '30 días', 'Acceso a salas premium + beneficios mensuales'),
 ('Regla Libre', 25, '30 días', 'Sin restricciones de horario'),
 ('Guarda Paga', 15, '7 días', 'Paga semanal garantizada');
+
+-- ============================================================
+-- TABLA: publicaciones (noticias)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `publicaciones` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `titulo` VARCHAR(255) NOT NULL,
+  `contenido` TEXT NOT NULL,
+  `autor` VARCHAR(100) NOT NULL DEFAULT 'Admin',
+  `imagen` VARCHAR(500) DEFAULT NULL,
+  `fecha` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `publicaciones` (`titulo`, `contenido`, `autor`) VALUES
+('¡Bienvenidos al verano en Reino Hogwartz!', 'Esta temporada de verano trae eventos épicos, torneos de playa y mucha diversión. ¡Únete ahora!', 'Admin');
+
+-- ============================================================
+-- TABLA: notificaciones
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `notificaciones` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id_usuario` INT NOT NULL,
+  `mensaje` VARCHAR(500) NOT NULL,
+  `leida` TINYINT(1) NOT NULL DEFAULT 0,
+  `fecha` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`id_usuario`) REFERENCES `registro_usuario`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
 -- TABLA: personas
@@ -109,18 +136,3 @@ CREATE TABLE IF NOT EXISTS `pagas` (
   `fecha` DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`id_persona`) REFERENCES `personas`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ============================================================
--- TABLA: publicaciones
--- ============================================================
-CREATE TABLE IF NOT EXISTS `publicaciones` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `titulo` VARCHAR(255) NOT NULL,
-  `contenido` TEXT NOT NULL,
-  `autor` VARCHAR(100) NOT NULL DEFAULT 'Admin',
-  `imagen` VARCHAR(500) DEFAULT NULL,
-  `fecha` DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO `publicaciones` (`titulo`, `contenido`, `autor`) VALUES
-('¡Bienvenidos al Reino Hogwartz!', 'Esta es la agencia oficial. Únete y convíértete en un mago.', 'Admin');
