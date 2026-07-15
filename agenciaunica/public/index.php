@@ -1,36 +1,32 @@
-<?php require_once('../private/plantillas/header.php'); ?>
-
-<br>
-<br>
-<br>
 <?php
-// Verifica si se ha pasado la variable 'page'
-if (isset($_GET['page'])) {
-    
-    // Verifica el valor de 'page' y carga el archivo correspondiente
-    if ($_GET['page'] == 'RAG') { // ARCHIVO RANGOS
-        include 'RAG.php';
-    } elseif ($_GET['page'] == 'GSU') { // ARCHIVO GESTION USUARIO
-        include 'GSU.php'; 
-    } elseif ($_GET['page'] == 'HOM') { // ARCHIVO HOME
-        include 'FO.php'; 
-    } elseif ($_GET['page'] == 'GSP') { // ARCHIVO GESTION DE PAGAS
-        include 'GSP.php'; 
-    } elseif ($_GET['page'] == 'GVE') { // ARCHIVO GESTION VENTAS
-        include 'GVE.php'; 
-    } elseif ($_GET['page'] == 'GVP') { // ARCHIVO GESTION VENTAS PLACAS
-        include 'GVP.php'; 
-    }else {
-        echo "<h1>Página no encontrada</h1>";
-        echo "<p>Redirigiendo a la página principal...</p>";
-        header("refresh:3;url=index.php");
-        exit();
-    }
+/**
+ * index.php — Hub principal del panel de agencia.
+ * Carga el header (que verifica sesión), luego sirve la sección pedida.
+ */
+require_once(__DIR__ . '/../private/plantillas/header.php');
+?>
+
+<?php
+// Sección activa (por defecto: HOME)
+$page = $_GET['page'] ?? 'HOM';
+
+// Mapa de secciones permitidas
+$secciones = [
+    'HOM' => __DIR__ . '/FO.php',
+    'RAG' => __DIR__ . '/RAG.php',
+    'GSU' => __DIR__ . '/GSU.php',
+    'GSP' => __DIR__ . '/GSP.php',
+    'GVE' => __DIR__ . '/GVE.php',
+    'GVP' => __DIR__ . '/GVP.php',
+    'PERFIL' => __DIR__ . '/../private/procesos/perfil.php',
+];
+
+if (array_key_exists($page, $secciones) && file_exists($secciones[$page])) {
+    include $secciones[$page];
 } else {
-    include 'FO.php';
+    // Fallback: mostrar home si la página no existe
+    include __DIR__ . '/FO.php';
 }
 ?>
 
-
-
-<?php require_once('../private/plantillas/footer.php'); ?>
+<?php require_once(__DIR__ . '/../private/plantillas/footer.php'); ?>
