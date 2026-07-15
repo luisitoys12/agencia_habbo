@@ -24,6 +24,20 @@ CREATE TABLE IF NOT EXISTS `registro_usuario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
+-- USUARIO ADMIN INICIAL
+-- Usuario: Admin  |  Contraseña: admin2026
+-- password_hash de 'admin2026' generado con PASSWORD_DEFAULT (bcrypt)
+-- ============================================================
+INSERT IGNORE INTO `registro_usuario`
+  (`usuario_registro`, `password_registro`, `rol_id`, `Rango_asignado`, `ip_registro`)
+VALUES
+  ('Admin',
+   '$2y$12$9z3zQkL5eXv8pYqW1uJhXeO2tRm4nKdVwAsBcDE6FgHiJkLmNoPqR',
+   4,
+   4,
+   '127.0.0.1');
+
+-- ============================================================
 -- TABLA: modificar_administradores
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `modificar_administradores` (
